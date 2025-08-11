@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Olasagasti</title>
+    <style>
+        body { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: #f7f7f7; }
+        img {
+            width: 600px;
+            max-width: 90vw;
+            height: auto;
+            filter: grayscale(100%);
+            cursor: pointer;
+            transition: filter 0.3s;
+            z-index: 2;
+        }
+        img.color {
+            filter: none;
+        }
+        .rain {
+            pointer-events: none;
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: 1;
+        }
+        body.melancholic {
+            background: linear-gradient(180deg, #222 60%, #444 100%);
+            transition: background 1s;
+        }
+    </style>
+</head>
+<body>
+    <img id="playerImg" src="https://cdn.realsociedad.eus//Uploads/jugadores/_0_olasagasti.png" alt="Jugador" />
+    <canvas id="rainCanvas" class="rain"></canvas>
+    <audio id="playerAudio" preload="auto">
+        <source src="https://www.dropbox.com/scl/fi/3vs0d976m395upkuj5xfd/porque_te_vas.mp3?rlkey=tub862jdaqw6cvxw67fiot5yr&st=fjba1hvj&raw=1" type="audio/mpeg">
+        Tu navegador no soporta audio HTML5.
+    </audio>
+    <script>
+        const img = document.getElementById('playerImg');
+        const audio = document.getElementById('playerAudio');
+        const rainCanvas = document.getElementById('rainCanvas');
+        const ctx = rainCanvas.getContext('2d');
+        let isColor = false;
+        let rainDrops = [];
+        let rainIntensity = 0;
+        let rainInterval = null;
+        let rainAnimationId = null;
+        let rainGrowing = false;
+
+        function resizeCanvas() {
+            rainCanvas.width = window.innerWidth;
+            rainCanvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function createRainDrop() {
+            return {
+                x: Math.random() * rainCanvas.width,
+                y: Math.random() * -rainCanvas.height,
+                len: 10 + Math.random() * 20,
+                speed: 4 + Math.random() * 6 + rainIntensity * 0.5,
+                opacity: 0.2 + Math.random() * 0.3 + rainIntensity * 0.01
+            };
+        }
+
+        function drawRain() {
+            ctx.clearRect(0, 0, rainCanvas.width, rainCanvas.height);
+            ctx.strokeStyle = 'rgba(180,200,255,0.4)';
+            ctx.lineWidth = 2;
+            for (let drop of rainDrops) {
+                ctx.globalAlpha = drop.opacity;
+                ctx.beginPath();
+                ctx.moveTo(drop.x, drop.y);
+                ctx.lineTo(drop.x, drop.y + drop.len);
+                ctx.stroke();
+            }
+            ctx.globalAlpha = 1;
+        }
+
+        function updateRain() {
+            for (let drop of rainDrops) {
+                drop.y += drop.speed;
+                if (drop.y > rainCanvas.height) {
+                    Object.assign(drop, createRainDrop());
+                    drop.y = 0;
+                }
+            }
+        }
+
+        function animateRain() {
+            updateRain();
+            drawRain();
+            rainAnimationId = requestAnimationFrame(animateRain);
+        }
+
+        function startRain() {
+            document.body.classList.add('melancholic');
+            rainIntensity = 1;
+            rainDrops = Array.from({length: 60}, createRainDrop);
+            animateRain();
+            rainGrowing = true;
+            rainInterval = setInterval(() => {
+                if (rainIntensity < 10) {
+                    rainIntensity++;
+                    // Añade más gotas y aumenta opacidad
+                    for (let i = 0; i < 10; i++) rainDrops.push(createRainDrop());
+                }
+            }, 4000);
+        }
+
+        function stopRain() {
+            document.body.classList.remove('melancholic');
+            rainGrowing = false;
+            rainIntensity = 0;
+            rainDrops = [];
+            ctx.clearRect(0, 0, rainCanvas.width, rainCanvas.height);
+            if (rainInterval) clearInterval(rainInterval);
+            if (rainAnimationId) cancelAnimationFrame(rainAnimationId);
+        }
+
+        img.addEventListener('click', () => {
+            isColor = !isColor;
+            if (isColor) {
+                img.classList.add('color');
+                audio.play();
+                startRain();
+            } else {
+                img.classList.remove('color');
+                audio.pause();
+                stopRain();
+            }
+        });
+
+        audio.addEventListener('pause', stopRain);
+        audio.addEventListener('play', startRain);
+    </script>
+</body>
+</html>
